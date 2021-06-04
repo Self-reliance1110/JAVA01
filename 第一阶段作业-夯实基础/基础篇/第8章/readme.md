@@ -55,16 +55,16 @@ java.sql.Date使用数据库的时候才会用到这个类
 现在使用的比较多的是java.util.Calendar，它是一个抽象类
 Calendar gc = Calendar.getInstance();会返回一个Calendar的直接子类GregorianCalendar
 其实效果跟GregorianCalendar gc = new GregorianCalendar();是一样的
+
 常用方法：
-```
 Calendar gc = Calendar.getInstance();
-int year = gc.get(Calendar.YEAR);
-int month = gc.get(Calendar.MONTH)+1;//国外的月份是0-11,所以获取之后需要+1
-int day = gc.get(Calendar.DAY_OF_MONTH);
-int hour = gc.get(Calendar.HOUR);HOUR 就是12小时制，HOUR_OF_DAY是24小时制
-int minute = gc.get(Calendar.MINUTE);
-int second = gc.get(Calendar.SECOND);
-```
+        int year = gc.get(Calendar.YEAR);
+        int month = gc.get(Calendar.MONTH)+1;//国外的月份是0-11,所以获取之后需要+1
+        int day = gc.get(Calendar.DAY_OF_MONTH);
+        int hour = gc.get(Calendar.HOUR);HOUR 就是12小时制，HOUR_OF_DAY是24小时制
+        int minute = gc.get(Calendar.MINUTE);
+        int second = gc.get(Calendar.SECOND);
+
 ## java.time包
 包下有
 LocalTime类，LocalDate类还有LocalDateTime类
@@ -77,3 +77,57 @@ java.text包下
 * DateFormat 日期/时间格式化，抽象类
 java.time.Format
 DateTimeFormatter
+
+# 作业
+```
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Scanner;
+
+public class demo06 {
+    public static void main(String[] args) {
+        String idCardStr = null;
+        Scanner sc = new Scanner(System.in);
+        idCardStr = sc.nextLine();
+        if(idCardStr.length() == 18)//判断是否为18位
+        {
+            char[] chars = idCardStr.toCharArray();
+            for(int i = 0;i<17;i++)
+            {
+                //判断前17位是否为数字
+                if(!(chars[17]<=57&&chars[17]>=48)){
+                    System.out.println("0000-00-00");
+                    return;
+                }
+            }
+            if((chars[17]<=57&&chars[17]>=48)||(chars[17]>=97 && chars[17]<=122))//判断第18位是否为数字或小写字母
+            {
+                //提取年月日
+                StringBuilder stringBuilder = new StringBuilder();
+                stringBuilder.append(idCardStr.substring(6,10));
+                stringBuilder.append("-");
+                stringBuilder.append(idCardStr.substring(10,12));
+                stringBuilder.append("-");
+                stringBuilder.append(idCardStr.substring(12,14));
+                System.out.println(stringBuilder);
+                String date = stringBuilder.toString();
+
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-mm-dd");//设置日期格式
+                boolean isExists = true;
+                try {
+                    sdf.parse(date);//对日期进行转换，如果报异常说明日期不存在
+                } catch (ParseException e) {
+                    isExists = false;
+                    System.out.println("0000-00-00");
+                }
+            }
+            else
+
+                System.out.println("0000-00-00");
+
+        }else
+            System.out.println("0000-00-00");
+    }
+}
+
+```
