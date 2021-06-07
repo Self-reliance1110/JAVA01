@@ -427,3 +427,250 @@ public class Student {
     <score/>
 </student>
 ```
+# 高级文件处理(续)
+## 图形图像的简介及解析
+### 图形
+* java.awt包
+* java.2D库:Graphics2D,Line2D,Rectangle2D,Ellipse2D,Arc2D
+* color,storke(线条)
+### 图像
+* 由像素点构成
+* 格式：jpg，png，gif等等
+* 颜色：RGC(RED,GREEN.BLUE)
+#### 图像类
+Java原生支持jpg,png,bwp,wbmp,gif
+* javax.imageio.ImageIO
+ImageReader,ImageWriter读写图像文件
+* java.awt.image.BufferedImage
+
+## 条形码及二维码的简介及解析
+### 条形码(一维码)
+* 通常代表一段数字/字母
+* 一般数据容量为30个数字/字母
+<!--代码用例-->
+```
+public static void main(String[] args) {
+
+        generateCode(new File("D:/1dCode.png"),"123456789012",500,250);
+        readCode("D:/1dCode.png");
+    }
+    public static void generateCode(File file,String code,int weight,int height)//生成二维码
+    {
+        BitMatrix bitMatrix = null;//位图矩阵
+        try {
+            MultiFormatWriter mfw = new MultiFormatWriter();
+
+            bitMatrix = mfw.encode(code,BarcodeFormat.CODE_128,weight,height,null);
+        } catch (WriterException e) {
+            e.printStackTrace();
+        }
+
+        try(FileOutputStream fop = new FileOutputStream(file))
+        {
+            ImageIO.write(MatrixToImageWriter.toBufferedImage(bitMatrix),"png",fop);
+            fop.flush();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    public static void readCode(String file)
+    {
+        try {
+            BufferedImage bufferedImage = ImageIO.read(new File(file));
+            if(bufferedImage == null)
+                return;
+            LuminanceSource source = new BufferedImageLuminanceSource(bufferedImage);
+            BinaryBitmap bitmap = new BinaryBitmap(new HybridBinarizer(source));
+            Map<DecodeHintType,Object> hints = new HashMap<>();
+            hints.put(DecodeHintType.CHARACTER_SET,"GBK");
+            hints.put(DecodeHintType.PURE_BARCODE,Boolean.TRUE);
+            hints.put(DecodeHintType.TRY_HARDER,Boolean.TRUE);
+
+            Result result = new MultiFormatReader().decode(bitmap,hints);
+            System.out.println("条形码内容："+result);
+        } catch (IOException | NotFoundException e) {
+            e.printStackTrace();
+        }
+    }
+```
+
+### 二维码
+* 用某种特定的几何图形按照一定规律在平面分布的黑白相间的图形记录数据符号信息
+* 比条形码能存储更多信息
+* 能存储数字/字母/文字/图片等信息
+* 可存储几百到几十kb
+* 抗损坏
+
+#### Zxing(Zebra Crossing)
+Java需要依赖第三方库来对条形码或二维码进行操作
+主要类
+* BitMatrix位图矩阵
+* MultiFormatWriter位图编写器
+* MatrixToImageWriter写入图片
+
+#### BarCode4J
+* 第三方类库
+* 纯Java实现的条形码生成
+* 只负责生成，不负责解析
+
+## DOCX文档功能和处理
+* DOCX解析
+* DOCX生成(完全生成，部分生成+模板)
+### Apache POI
+* 可处理docx,xlsx,pptx,visio等office套件
+* 纯java工具包
+## 表格文件处理xls/xlsx （Excel）
+* xlsx 是以XML为标准
+* 第三方类库
+* POI JXL (免费)
+* COM4J (Windows平台)
+* Aspose等 (收费)
+
+## PDF简介及解析
+* 便携式文档格式
+* PostScript 描述所有图形 保证在不同的机器上的颜色和打印效果
+* 字型嵌入系统 可使字型随文件一起传输
+* 结构化的存储系统 绑定元素和任何相关内容到单个文件 带有适当的数据压缩系统
+
+
+# 作业
+```
+    private static ArrayList<Person> personList, resultPersonList;
+    private static Person person;
+    private static File barCodeFile;
+    private static XWPFDocument document;
+
+    public static void main(String[] args) throws IOException, WriterException, InvalidFormatException {
+        resultPersonList = readExcel("student.xlsx");
+        for (Person p : resultPersonList) {
+            System.out.println(p);
+        }
+
+        barCodeFile = new File("barCode.png");
+        generateBarCode(barCodeFile, person.getCode(), 500, 250);
+        modify();
+        ConvertDocxToPdf();
+    }
+    public static void writeBarCode(String imagePath) throws IOException, InvalidFormatException {
+        XWPFParagraph xwpfParagraph = document.createParagraph();
+        XWPFRun run = xwpfParagraph.createRun();
+        run.addPicture(new FileInputStream(imagePath), XWPFDocument.PICTURE_TYPE_PNG, imagePath, Units.toEMU(200), Units.toEMU(40));
+        FileOutputStream fileOutputStream = new FileOutputStream("student1.docx");
+        document.write(fileOutputStream);
+    }
+
+    public static void modify() throws IOException, InvalidFormatException {
+        InputStream is = new FileInputStream("student.docx");
+        document = new XWPFDocument(is);
+        List<IBodyElement> iBodyElements = document.getBodyElements();
+
+        for (int i = iBodyElements.size()-1; i >=0 ; i--) {
+            BodyElementType bodyElementType = iBodyElements.get(i).getElementType();
+            if (bodyElementType == BodyElementType.TABLE) {
+                XWPFTable table = (XWPFTable) iBodyElements.get(i);
+                List<XWPFTableRow> tableRows = table.getRows();
+                for (XWPFTableRow row : tableRows) {
+                    List<XWPFTableCell> cells = row.getTableCells();
+                    int studentInfoCnt = 0;
+                    for (int k = 0; k < cells.size(); k++) {
+                        if (cells.get(k).getText().equals("{name}")) {
+                            //remove the text in the cell which already existed
+                            cells.get(k).removeParagraph(0);
+                            cells.get(k).setText(resultPersonList.get(studentInfoCnt).getName());
+                        } else if (cells.get(k).getText().equals("{sex}")) {
+                            //already removed the name cell, so the index of this cell would be previous index
+                            cells.get(k).removeParagraph(0);
+                            cells.get(k).setText(resultPersonList.get(studentInfoCnt++).getGender());
+                        }
+                    }
+                }
+            }
+            if (bodyElementType != BodyElementType.TABLE) {
+                XWPFParagraph xwpfParagraph = (XWPFParagraph) iBodyElements.get(i);
+                if (xwpfParagraph.getText().equals("{barcode}")) {
+                    List<XWPFRun> runs = xwpfParagraph.getRuns();
+                    for (int j = runs.size()-1; j >=0; j--) {
+                        xwpfParagraph.removeRun(j);
+                    }
+                    writeBarCode("barCode.png");
+                }
+            }
+        }
+
+
+        FileOutputStream fileOutputStream=new FileOutputStream("student1.docx");
+        document.write(fileOutputStream);
+        fileOutputStream.close();
+    }    
+
+
+    public static ArrayList<Person> readExcel(String filePath) throws IOException {
+        personList = new ArrayList<>();
+        InputStream ExcelFileToRead = new FileInputStream(filePath);
+        XSSFWorkbook wb = new XSSFWorkbook(ExcelFileToRead);
+
+        XSSFSheet sheet = wb.getSheetAt(0);
+        XSSFRow row;
+        XSSFCell cell;
+
+        Iterator rows = sheet.rowIterator();
+        while (rows.hasNext()) {
+            row = (XSSFRow) rows.next();
+            Iterator cells = row.cellIterator();
+            person = new Person();
+            int position = 0;
+            while (cells.hasNext()) {
+                cell = (XSSFCell) cells.next();
+                switch (position) {
+                    case 0:
+                        person.setName(cell.getStringCellValue());
+                        break;
+                    case 1:
+                        person.setGender(cell.getStringCellValue());
+                        break;
+                    case 2:
+                        person.setCode(cell.getStringCellValue());
+                        break;
+                    default:
+                }
+                position++;
+            }
+            personList.add(person);
+        }
+        return personList;
+    }
+    public static void ConvertDocxToPdf(){
+        String docxPath = "student1.docx";
+        String pdfPath = "student.pdf";
+        XWPFDocument document = null;
+        try (InputStream doc = Files.newInputStream(Paths.get(docxPath))) {
+            document = new XWPFDocument(doc);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        fr.opensagres.poi.xwpf.converter.pdf.PdfOptions options = PdfOptions.create();
+        try (OutputStream out = Files.newOutputStream(Paths.get(pdfPath))) {
+            PdfConverter.getInstance().convert(document, out, options);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void generateBarCode(File file, String code, int width, int height) throws WriterException, FileNotFoundException {
+        BitMatrix matrix = null;
+        MultiFormatWriter writer = new MultiFormatWriter();
+        matrix = writer.encode(code, BarcodeFormat.CODE_128, width, height, null);
+        FileOutputStream fileOutputStream = new FileOutputStream(file);
+        try {
+            ImageIO.write(MatrixToImageWriter.toBufferedImage(matrix), "png", fileOutputStream);
+            fileOutputStream.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
+
